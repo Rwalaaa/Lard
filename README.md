@@ -17,7 +17,7 @@ Copier `Lard.vst3` dans `C:\Program Files\Common Files\VST3\`, puis relancer l'a
 
 ## Compiler
 
-Prérequis : CMake 3.22+ et un compilateur C++17 (Visual Studio 2022 sous Windows). JUCE est téléchargé automatiquement.
+Prérequis : CMake 3.22+ et un compilateur C++17 (Visual Studio sous Windows). JUCE est téléchargé automatiquement.
 
 ```
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release

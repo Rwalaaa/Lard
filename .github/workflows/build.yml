@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Configurer (Visual Studio 2022, x64)
-        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+      - name: Configurer (Visual Studio installé sur la machine, x64)
+        run: cmake -S . -B build -A x64
 
       - name: Compiler
         run: cmake --build build --config Release --parallel
