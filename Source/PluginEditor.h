@@ -2,6 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "PluginProcessor.h"
 #include "LardLookAndFeel.h"
+#include "DemonFace.h"
 
 class LardEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
@@ -11,6 +12,7 @@ public:
     ~LardEditor() override;
 
     void paint(juce::Graphics&) override;
+    void paintOverChildren(juce::Graphics&) override;
     void resized() override;
 
 private:
@@ -28,6 +30,8 @@ private:
 
     LardAudioProcessor& proc;
     LardLookAndFeel laf;
+    DemonFace face;
+    juce::Rectangle<float> headerPanel;
 
     juce::Slider fatSlider, colorSlider, gainSlider, mixSlider;
     using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;

@@ -8,24 +8,22 @@ const Rectangle<int> LardEditor::meterBounds { 540, 18, 160, 64 };
 
 static String utf8(const char* s) { return String::fromUTF8(s); }
 
-// rectangle aux coins biseautés (haut-gauche et bas-droite), comme la maquette
-static Path bevelled(Rectangle<float> r, float cut)
-{
-    Path p;
-    p.startNewSubPath(r.getX() + cut, r.getY());
-    p.lineTo(r.getRight(), r.getY());
-    p.lineTo(r.getRight(), r.getBottom() - cut);
-    p.lineTo(r.getRight() - cut, r.getBottom());
-    p.lineTo(r.getX(), r.getBottom());
-    p.lineTo(r.getX(), r.getY() + cut);
-    p.closeSubPath();
-    return p;
-}
-
 LardEditor::LardEditor(LardAudioProcessor& p)
     : AudioProcessorEditor(p), proc(p)
 {
     setLookAndFeel(&laf);
+
+    // cadre du logo, mesuré une fois : partagé avec le fond (cache) et le texte
+    {
+        Font f = laf.display(40.0f);
+        f.setExtraKerningFactor(0.15f);
+        const float tw = GlyphArrangement::getStringWidth(f, "LARD")
+                       + f.getExtraKerningFactor() * f.getHeight() * 4.0f;
+        headerPanel = Rectangle<float>(24.0f, 18.0f, tw + 36.0f, 58.0f);
+    }
+    face.setHeaderPanel(headerPanel);
+    face.setAuraCentre(fatBounds.toFloat().getCentre());
+    addAndMakeVisible(face);   // en premier : derrière tout le reste
 
     auto setupRotary = [this](Slider& s, const char* style) {
         s.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
@@ -34,11 +32,13 @@ LardEditor::LardEditor(LardAudioProcessor& p)
         s.setMouseDragSensitivity(300);
         s.setVelocityBasedMode(false);
         s.getProperties().set(LardStyle::key, style);
+        s.setBufferedToImage(true);   // redessiné seulement quand sa valeur change, pas à chaque image d'animation
         s.onValueChange = [this] { repaint(); };
         addAndMakeVisible(s);
     };
     setupRotary(fatSlider, LardStyle::fat);
     setupRotary(colorSlider, LardStyle::color);
+    fatSlider.onValueChange = [this] { face.setFatness((float) fatSlider.getValue()); repaint(); };
 
     auto setupBar = [this](Slider& s) {
         s.setSliderStyle(Slider::LinearHorizontal);
@@ -65,8 +65,9 @@ LardEditor::LardEditor(LardAudioProcessor& p)
     gainSlider.setTitle("Gain");
     mixSlider.setTitle("Mix");
 
+    face.setFatness((float) fatSlider.getValue());
     setSize(kWidth, kHeight);
-    startTimerHz(30);
+    startTimerHz(25);
 }
 
 LardEditor::~LardEditor()
@@ -77,6 +78,7 @@ LardEditor::~LardEditor()
 
 void LardEditor::resized()
 {
+    face.setBounds(0, 0, kWidth, kHeight);
     fatSlider.setBounds(fatBounds);
     colorSlider.setBounds(colorBounds);
     // barres du bas : zone cliquable de 24 px de haut, barre dessinée de 6 px
@@ -93,6 +95,9 @@ void LardEditor::timerCallback()
         meterDb = next;
         repaint(meterBounds);
     }
+    // animation du visage : vacillement, braises, embrasement selon la compression
+    face.setHeat(meterDb);
+    face.tick(Time::getMillisecondCounterHiRes() * 0.001);
 }
 
 // ---------------------------------------------------------------- textes
@@ -117,17 +122,12 @@ String LardEditor::rankText() const
 // ---------------------------------------------------------------- dessin
 void LardEditor::paint(Graphics& g)
 {
-    g.fillAll(LardColours::bg);
+    g.fillAll(LardColours::bg);   // le visage (opaque) recouvre tout
+}
 
-    // aura derrière Fatness (le visage animé arrive au lot 4b)
-    const float f = (float) fatSlider.getValue();
-    const auto c = fatBounds.toFloat().getCentre();
-    const float ar = 80.0f * (0.7f + 0.5f * f) * 1.35f;
-    ColourGradient aura(LardColours::fire.withAlpha(0.1f + 0.6f * f), c.x, c.y,
-                        LardColours::fire.withAlpha(0.0f), c.x + ar, c.y, true);
-    g.setGradientFill(aura);
-    g.fillEllipse(c.x - ar, c.y - ar, ar * 2.0f, ar * 2.0f);
-
+void LardEditor::paintOverChildren(Graphics& g)
+{
+    // textes par-dessus le visage et les potards
     paintHeader(g);
     paintMeter(g);
     paintKnobLabels(g);
@@ -136,26 +136,11 @@ void LardEditor::paint(Graphics& g)
 
 void LardEditor::paintHeader(Graphics& g)
 {
+    // le cadre est dessiné dans le fond (DemonFace) ; ici seulement le texte
     Font f = laf.display(40.0f);
     f.setExtraKerningFactor(0.15f);
-    // la mesure n'inclut pas l'espacement ajouté : on le compte pour chaque lettre
-    const float tw = GlyphArrangement::getStringWidth(f, "LARD")
-                   + f.getExtraKerningFactor() * f.getHeight() * 4.0f;
-    const auto panel = Rectangle<float>(24.0f, 18.0f, tw + 36.0f, 58.0f);
-    const Path shape = bevelled(panel, 12.0f);
-
-    // lueur rouge du cadre
-    for (int i = 3; i >= 1; --i) {
-        g.setColour(LardColours::fire.withAlpha(0.07f));
-        g.strokePath(shape, PathStrokeType(2.0f + (float) i * 6.0f));
-    }
-    g.setColour(LardColours::panel);
-    g.fillPath(shape);
-    g.setColour(LardColours::ember);
-    g.strokePath(shape, PathStrokeType(2.0f));
-
     g.setFont(f);
-    const auto textArea = panel.withTrimmedLeft(18.0f).withTrimmedTop(2.0f).toNearestInt();
+    const auto textArea = headerPanel.withTrimmedLeft(18.0f).withTrimmedTop(2.0f).toNearestInt();
     g.setColour(LardColours::fire.withAlpha(0.45f));
     for (auto d : { Point<int>(-1, 0), Point<int>(1, 0), Point<int>(0, -1), Point<int>(0, 1) })
         g.drawText("LARD", textArea.translated(d.x, d.y), Justification::centredLeft, false);
@@ -223,12 +208,8 @@ void LardEditor::paintKnobLabels(Graphics& g)
 
 void LardEditor::paintBottomBar(Graphics& g)
 {
+    // le fond de la barre est dessiné dans DemonFace ; ici les textes
     const auto bar = Rectangle<float>(16.0f, (float) kHeight - 12.0f - 52.0f, (float) kWidth - 32.0f, 52.0f);
-    const Path shape = bevelled(bar, 10.0f);
-    g.setColour(LardColours::bar);
-    g.fillPath(shape);
-    g.setColour(LardColours::ember.withAlpha(0.53f));
-    g.strokePath(shape, PathStrokeType(1.5f));
 
     Font lab = laf.body(11.0f);
     lab.setExtraKerningFactor(0.18f);

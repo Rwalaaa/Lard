@@ -35,7 +35,8 @@ juce_add_binary_data(LardData SOURCES
 set(LARD_SOURCES
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
-    Source/LardLookAndFeel.cpp)
+    Source/LardLookAndFeel.cpp
+    Source/DemonFace.cpp)
 
 target_sources(Lard PRIVATE ${LARD_SOURCES})
 
