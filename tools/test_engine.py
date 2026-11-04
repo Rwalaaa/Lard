@@ -190,7 +190,8 @@ y, cpu_sil = render("silence", silence, 1.0)
 check(np.all(y == 0) or np.max(np.abs(y)) < 1e-20, f"silence en sortie (max {np.max(np.abs(y)):.1e})")
 cpu = results[(1.0, 0.5)][1]
 print(f"       CPU (stéréo, 48 kHz, 1 cœur) : {cpu:.2f} % musique, {cpu_sil:.2f} % silence")
-check(cpu < 5 and cpu_sil < 5, "charge CPU < 5 % d'un cœur")
+CPU_LIMIT = float(os.environ.get("LARD_CPU_LIMIT", "5"))
+check(cpu < CPU_LIMIT and cpu_sil < CPU_LIMIT, f"charge CPU < {CPU_LIMIT:g} % d'un cœur")
 
 print()
 print("RÉSULTAT :", "TOUT OK" if not fails else f"{len(fails)} échec(s)")
