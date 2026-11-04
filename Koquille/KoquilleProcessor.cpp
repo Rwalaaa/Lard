@@ -104,6 +104,7 @@ void KoquilleAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer
 
     engine.setParams(readParams());
     engine.process(buffer.getArrayOfWritePointers(), jmin(numOut, buffer.getNumChannels()), buffer.getNumSamples());
+    colourDb.store(engine.colourDb());
 }
 
 void KoquilleAudioProcessor::processBlockBypassed(AudioBuffer<float>& buffer, MidiBuffer&)

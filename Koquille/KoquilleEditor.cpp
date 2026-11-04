@@ -33,6 +33,7 @@ KoquilleEditor::KoquilleEditor(KoquilleAudioProcessor& p)
         s.getProperties().set(KoqStyle::plain, k.plain);
         s.getProperties().set(KoqStyle::onBg, k.onBg);
         s.setTitle(k.title);
+        s.setBufferedToImage(true);   // redessiné seulement quand sa valeur change
         s.onValueChange = [this] { updateBackground(); repaint(); };
         addAndMakeVisible(s);
         sliderAtts.push_back(std::make_unique<SA>(proc.apvts, k.id, s));
@@ -51,11 +52,22 @@ KoquilleEditor::KoquilleEditor(KoquilleAudioProcessor& p)
 
     updateBackground();
     setSize(KoqLayout::W, KoqLayout::H);
+    startTimerHz(25);
 }
 
 KoquilleEditor::~KoquilleEditor()
 {
+    stopTimer();
     setLookAndFeel(nullptr);
+}
+
+void KoquilleEditor::timerCallback()
+{
+    // aiguille : -40 dB (au repos) .. -6 dB (dans le rouge) ; montée rapide, retombée douce
+    const float target = jlimit(0.0f, 1.0f, (proc.colourDb.load() + 40.0f) / 34.0f);
+    const float k = target > needle ? 0.45f : 0.12f;
+    needle += (target - needle) * k;
+    background.setDynamics(needle, Time::getMillisecondCounterHiRes() * 0.001);
 }
 
 void KoquilleEditor::setupChoice(Choice& c, const char* paramId, const StringArray& labels, int radioGroup)
@@ -82,14 +94,12 @@ void KoquilleEditor::setupChoice(Choice& c, const char* paramId, const StringArr
 
 void KoquilleEditor::updateBackground()
 {
-    // provisoire (lot 4a) : lueurs et aiguille estimées d'après les réglages
+    // lueur de base des lampes d'après leurs réglages (l'animation y ajoute la couleur mesurée)
     const float pe = (float) pentode.getValue(), tr = (float) triode.getValue(), de = (float) density.getValue();
     NacreBackground::State st;
     st.density = de;
     st.pentDrive = jlimit(0.0f, 1.0f, 0.15f + 0.6f * pe + 0.35f * de);
     st.triDrive  = jlimit(0.0f, 1.0f, 0.15f + 0.6f * tr + 0.35f * de);
-    st.colour = jlimit(0.0f, 1.0f, (pe + tr) * 0.35f + de * 0.3f + (float) sat.getValue() * 0.15f
-                                   + jmax(0.0f, (float) input.getValue()) / 48.0f);
     background.setState(st);
 }
 

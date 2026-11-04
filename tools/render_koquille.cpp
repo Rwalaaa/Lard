@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
     }
     if (!writeWav(argv[2], w)) return 1;
     const double secs = std::chrono::duration<double>(t1 - t0).count();
-    std::printf("latency=%d cpu_pct=%.3f\n", eng.latencySamples(), 100.0 * secs / ((double) frames / w.sr));
+    std::printf("latency=%d colour_db=%.2f cpu_pct=%.3f\n", eng.latencySamples(), eng.colourDb(),
+                100.0 * secs / ((double) frames / w.sr));
     return 0;
 }

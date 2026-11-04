@@ -49,6 +49,9 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
+    // « couleur » ajoutée par les lampes (dB), lue par l'interface pour l'aiguille
+    std::atomic<float> colourDb { -120.0f };
+
 private:
     koq::Engine engine;
     std::atomic<float>* p[12] = {};   // dans l'ordre de KoqIDs

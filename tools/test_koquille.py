@@ -42,6 +42,7 @@ def read_wav(path):
 
 
 _count = [0]
+last = {}   # dernière mesure de « couleur » renvoyée par le moteur
 
 
 def render(name, x, **params):
@@ -55,6 +56,7 @@ def render(name, x, **params):
     if r.returncode != 0:
         raise RuntimeError(r.stderr)
     cpu = float(r.stdout.split("cpu_pct=")[1])
+    last["colour_db"] = float(r.stdout.split("colour_db=")[1].split()[0])
     y = read_wav(dst)
     os.remove(dst)
     return y, cpu
@@ -254,6 +256,17 @@ for st in settings:
     check(abs(d) < 1.0, f"{st or 'tout à zéro'} : {d:+.2f} dB (±1)")
 y, _ = render("pink", pinkSt, triode=1, pentode=1, density=1, sat=1, satband=0, autogain=0)
 print(f"       même réglage extrême sans gain auto : {db(rms(y[2 * SR:])) - db(base):+.2f} dB")
+
+print("M. Mesure de « couleur » (indicateur à aiguille), bruit rose")
+readings = []
+for st in [dict(), dict(triode=0.3, pentode=0.2, density=0.2), dict(triode=0.6, pentode=0.5, density=0.5),
+           dict(triode=1, pentode=1, density=1)]:
+    render("pink", pinkSt, **st)
+    readings.append(last["colour_db"])
+print("       " + "  ".join(f"{v:.1f}" for v in readings) + " dB")
+check(readings[0] < -30, f"au repos, la couleur reste basse ({readings[0]:.1f} dB < -30)")
+check(all(b > a for a, b in zip(readings, readings[1:])), "la couleur monte avec les lampes")
+check(readings[-1] > -10, f"à fond, l'aiguille part dans le rouge ({readings[-1]:.1f} dB > -10)")
 
 print()
 print("RÉSULTAT :", "TOUT OK" if not fails else f"{len(fails)} échec(s)")

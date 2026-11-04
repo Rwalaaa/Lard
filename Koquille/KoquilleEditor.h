@@ -4,7 +4,7 @@
 #include "KoquilleLookAndFeel.h"
 #include "NacreBackground.h"
 
-class KoquilleEditor final : public juce::AudioProcessorEditor {
+class KoquilleEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
     explicit KoquilleEditor(KoquilleAudioProcessor&);
     ~KoquilleEditor() override;
@@ -19,7 +19,9 @@ private:
         std::vector<std::unique_ptr<juce::TextButton>> buttons;
         std::unique_ptr<juce::ParameterAttachment> attachment;
     };
+    void timerCallback() override;
     void setupChoice(Choice&, const char* paramId, const juce::StringArray& labels, int radioGroup);
+    float needle = 0.0f;   // aiguille lissée (0..1)
     void updateBackground();
     juce::String pct(const juce::Slider&) const;
     juce::String dbText(const juce::Slider&) const;

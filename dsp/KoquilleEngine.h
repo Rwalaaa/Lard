@@ -98,7 +98,10 @@ public:
         smoothCoefChunk = std::exp(-(float) kChunk / (0.020f * sr));
         powCoef = std::exp(-1.0 / ((double) tuning.autoGainTau * sr));
         agCoef = std::exp(-1.0f / (0.3f * sr));
+        colCoef = std::exp(-1.0 / (0.3 * (double) sr));
         compShelf.setHighShelf(sr, tuning.compShelfHz, tuning.compShelfDb, tuning.compShelfS);
+        copyCoefs(compRef, compShelf);
+        refR1 = 1.0f - 2.0f * (float) kPi * 5.0f / sr;
         lastBand = lastCal = -1;
         lastAir = -1.0f;
         reset();
@@ -122,9 +125,18 @@ public:
         compShelf.reset(); calShelf.reset(); airShelf.reset();
         pIn = pWet = 0.0;
         agGain = 1.0f;
+        pColDiff = pColIn = 0.0;
+        compRef.reset(); calRef.reset(); airRef.reset();
+        for (int c = 0; c < kMaxChannels; ++c) refHp1X[c] = refHp1Y[c] = refHp2X[c] = refHp2Y[c] = 0.0f;
     }
 
     void setParams(const Params& p) { target = p; }
+
+    // « couleur » ajoutée : écart traité / sec, relatif à l'entrée (dB, lissé ~0,3 s)
+    float colourDb() const {
+        if (pColIn < 1.0e-9) return -120.0f;
+        return (float) (10.0 * std::log10(std::max(pColDiff / pColIn, 1.0e-12)));
+    }
     // suréchantillonneur (32) + 1 : l'anti-repliement (2 x 1/2 échantillon x4) est
     // complété à un échantillon entier par une petite ligne à retard
     int latencySamples() const { return OS::latencyBaseSamples() + 1; }
@@ -196,6 +208,27 @@ private:
     double pIn = 0.0, pWet = 0.0, powCoef = 0.9999;
     float agGain = 1.0f, agCoef = 0.9999f;
 
+    // mesure de couleur (pour l'indicateur à aiguille) : le sec passe par les mêmes
+    // filtres linéaires que le traité, pour ne mesurer que l'apport non linéaire
+    double pColDiff = 0.0, pColIn = 0.0, colCoef = 0.9999;
+    float refHp1X[kMaxChannels] = {}, refHp1Y[kMaxChannels] = {};
+    float refHp2X[kMaxChannels] = {}, refHp2Y[kMaxChannels] = {};
+    float refR1 = 0.9999f;
+    Biquad compRef, calRef, airRef;
+    static void copyCoefs(Biquad& dst, const Biquad& src) {
+        dst.b0 = src.b0; dst.b1 = src.b1; dst.b2 = src.b2; dst.a1 = src.a1; dst.a2 = src.a2;
+    }
+    inline float referenceOf(float dry, int c) {
+        float y = dry - refHp1X[c] + refR1 * refHp1Y[c];   // liaison (5 Hz)
+        refHp1X[c] = dry; refHp1Y[c] = y;
+        float x = compRef.process(y, c);
+        if (calActive) x = calRef.process(x, c);
+        if (airActive) x = airRef.process(x, c);
+        const float z = x - refHp2X[c] + dcR * refHp2Y[c];  // anti-continu (5 Hz)
+        refHp2X[c] = x; refHp2Y[c] = z;
+        return z;
+    }
+
     void computeDerived() {
         const Tuning& T = tuning;
         const float dens = std::clamp(cur.density, 0.0f, 1.0f);
@@ -236,12 +269,14 @@ private:
         if (cal != lastCal) {
             calActive = cal != 1;
             calShelf.setHighShelf(sr, T.calShelfHz, cal == 0 ? -T.calShelfDb : T.calShelfDb, 0.7);
+            copyCoefs(calRef, calShelf);
             lastCal = cal;
         }
         const float air = std::clamp(cur.air, 0.0f, 1.0f);
         if (std::fabs(air - lastAir) > 1.0e-4f) {
             airActive = air > 1.0e-4f;
             airShelf.setHighShelf(sr, T.airHz, T.airMaxDb * air, 0.8);
+            copyCoefs(airRef, airShelf);
             lastAir = air;
         }
     }
@@ -321,7 +356,7 @@ private:
             const float gout = outFrom + (outTo - outFrom) * k;
             const float mix  = mixFrom + (mixTo - mixFrom) * k;
 
-            float dryV[kMaxChannels] = {}, wetV[kMaxChannels] = {};
+            float dryV[kMaxChannels] = {}, wetV[kMaxChannels] = {}, refV[kMaxChannels] = {};
             float powIn = 0.0f, powWet = 0.0f;
             const bool satOn = satGainOut > 1.0e-5f;
 
@@ -374,7 +409,10 @@ private:
 
                 // le sec n'a pas le gain d'entrée : on compense pour que Mix compare à niveau égal
                 wetV[c] = y / std::max(gin, 1.0e-6f);
-                powIn += in * in;
+                // référence = sec passé par les mêmes filtres linéaires : sert au gain auto
+                // (on ne compense pas l'infra-grave retiré) et à la mesure de couleur
+                refV[c] = referenceOf(dryV[c], c);
+                powIn += refV[c] * refV[c];
                 powWet += wetV[c] * wetV[c];
             }
             dryPos = (dryPos + 1) % (int) dryBuf[0].size();
@@ -391,8 +429,16 @@ private:
             }
             agGain = agTarget + agCoef * (agGain - agTarget);
 
-            for (int c = 0; c < nch; ++c)
-                ch[c][s] = (dryV[c] + mix * (wetV[c] * agGain - dryV[c])) * gout;
+            float powDiff = 0.0f, powDry = 0.0f;
+            for (int c = 0; c < nch; ++c) {
+                const float wet = wetV[c] * agGain;
+                const float d = wet - refV[c];
+                powDiff += d * d;
+                powDry += refV[c] * refV[c];
+                ch[c][s] = (dryV[c] + mix * (wet - dryV[c])) * gout;
+            }
+            pColDiff = powDiff + colCoef * (pColDiff - powDiff);
+            pColIn   = powDry  + colCoef * (pColIn   - powDry);
         }
     }
 };

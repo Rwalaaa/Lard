@@ -19,6 +19,7 @@ int main(int argc, char** argv)
         const float v = a.fromFirstOccurrenceOf("=", false, false).getFloatValue();
         if (key == "scale") { scale = v; continue; }
         if (key == "width") { width = (int) v; continue; }
+        if (key == "colour") { proc.colourDb.store(v); continue; }   // mesure simulée (dB) pour l'aiguille
         auto* p = proc.apvts.getParameter(key);
         if (p == nullptr) { std::fprintf(stderr, "paramètre inconnu : %s\n", argv[i]); return 2; }
         p->setValueNotifyingHost(p->convertTo0to1(v));
