@@ -96,21 +96,32 @@ rng = np.random.default_rng(3)
 white = rng.standard_normal(SR * 6)
 pink = np.cumsum(white)
 pink = pink - np.convolve(pink, np.ones(2048) / 2048, mode="same")
+pink = pink[4096:-4096]   # les bords du lissage gardent une dérive très grave : on les retire
 pink = pink / rms(pink) * 10 ** (-18 / 20)
 pinkSt = np.stack([pink, np.roll(pink, 7)], axis=1)
 silence = np.zeros(SR * 3)
 
 # ---------------- tests ----------------
-print("A. Transparence avec tout à zéro")
-y, _ = render("sine1k", sine1k)
-# référence : l'entrée passée par les deux passe-haut 5 Hz du moteur (liaison + anti-continu)
+print("A. Transparence avec tout à zéro (gain automatique coupé, testé en L)")
+y, _ = render("sine1k", sine1k, autogain=0)
+# référence : l'entrée passée par les filtres linéaires voulus du moteur :
+# deux passe-haut 5 Hz (liaison + anti-continu) et l'étagère qui aplatit l'aigu
+from scipy.signal import lfilter
+
+
+def high_shelf(f0, gdb, S, fs=SR):
+    A = 10 ** (gdb / 40); w0 = 2 * np.pi * f0 / fs; c, s = np.cos(w0), np.sin(w0)
+    al = s / 2 * np.sqrt((A + 1 / A) * (1 / S - 1) + 2); sa = 2 * np.sqrt(A) * al
+    b = [A * ((A + 1) + (A - 1) * c + sa), -2 * A * ((A - 1) + (A + 1) * c), A * ((A + 1) + (A - 1) * c - sa)]
+    a = [(A + 1) - (A - 1) * c + sa, 2 * ((A - 1) - (A + 1) * c), (A + 1) - (A - 1) * c - sa]
+    return np.array(b) / a[0], np.array(a) / a[0]
+
+
 R = 1 - 2 * np.pi * 5 / SR
 ref = sine1k.copy()
 for _ in range(2):
-    out = np.zeros_like(ref); x1 = y1 = 0.0
-    for i, v in enumerate(ref):
-        y1 = v - x1 + R * y1; x1 = v; out[i] = y1
-    ref = out
+    ref = lfilter([1, -1], [1, -R], ref)
+ref = lfilter(*high_shelf(14500, 1.0, 0.5), ref)
 err = y[LAT:, 0] - ref[:len(y) - LAT]
 res = db(rms(err[SR:])) - db(rms(sine1k))
 check(res < -55, f"sinus 1 kHz : résidu {res:.1f} dB (< -55)")
@@ -182,6 +193,67 @@ check(np.max(np.abs(y)) < 1e-20, f"silence en sortie (max {np.max(np.abs(y)):.1e
 CPU_LIMIT = float(os.environ.get("KOQ_CPU_LIMIT", "6"))
 print(f"       CPU (stéréo, 48 kHz, 1 cœur) : {cpu:.2f} %")
 check(cpu < CPU_LIMIT, f"charge CPU < {CPU_LIMIT:g} % d'un cœur")
+
+T_SW = 8.0
+ts = np.arange(int(SR * T_SW)) / SR
+K_SW = T_SW / np.log(22000 / 20)
+sweep = 0.125 * np.sin(2 * np.pi * 20 * K_SW * (np.exp(ts / K_SW) - 1))
+
+
+def response(**params):
+    """Réponse en fréquence (dB) aux fréquences données, sur le balayage, gain auto coupé."""
+    y, _ = render("sweep", sweep, autogain=0, **params)
+    Y = np.abs(np.fft.rfft(y[LAT:, 0][:len(sweep) - LAT]))
+    X = np.abs(np.fft.rfft(sweep[:len(sweep) - LAT]))
+    fr = np.fft.rfftfreq(len(sweep) - LAT, 1 / SR)
+    def at(f):
+        b = (fr > f * 0.97) & (fr < f * 1.03)
+        return db(np.sum(Y[b])) - db(np.sum(X[b]))
+    return at
+
+
+print("I. Calibration (réponse en fréquence, lampes à zéro)")
+normal = response(cal=1)
+for f in [50, 1000, 5000, 10000, 16000]:
+    check(abs(normal(f)) < 0.3, f"Normal à {f} Hz : {normal(f):+.2f} dB (±0,3)")
+print(f"       Normal à 20 kHz : {normal(20000):+.2f} dB (limite du suréchantillonnage)")
+dark, bright = response(cal=0), response(cal=2)
+print(f"       à 10 kHz : Sombre {dark(10000):+.2f}  Normal {normal(10000):+.2f}  Brillant {bright(10000):+.2f} dB")
+check(dark(10000) < normal(10000) - 1.5 and bright(10000) > normal(10000) + 1.5, "Sombre < Normal < Brillant (écarts > 1,5 dB)")
+check(abs(dark(300)) < 0.3 and abs(bright(300)) < 0.3, "grave et médium intacts (300 Hz à ±0,3 dB)")
+
+print("J. Air")
+air = response(air=1)
+print(f"       Air à fond : 1 kHz {air(1000):+.2f}  10 kHz {air(10000):+.2f}  15 kHz {air(15000):+.2f} dB")
+check(air(15000) > 4.0 and abs(air(1000)) < 0.3, "Air : > +4 dB à 15 kHz, médium intact")
+
+print("K. Saturation parallèle : sélective en fréquence")
+t2 = np.arange(SR * 4) / SR
+tone100 = 0.25 * np.sin(2 * np.pi * 100 * t2)
+tone5k = 0.25 * np.sin(2 * np.pi * 5000 * t2)
+_, a = harmonics(render("t100", tone100, sat=0.8, satband=0, autogain=0)[0][:, 0], 100)
+_, b = harmonics(render("t5k", tone5k, sat=0.8, satband=0, autogain=0)[0][:, 0], 5000)
+print(f"       bande Grave : 100 Hz -> THD {a:.1f} dB, 5 kHz -> THD {b:.1f} dB")
+check(a > b + 15, "bande Grave : le grave sature, l'aigu beaucoup moins")
+_, a = harmonics(render("t100", tone100, sat=0.8, satband=3, autogain=0)[0][:, 0], 100)
+_, b = harmonics(render("t5k", tone5k, sat=0.8, satband=3, autogain=0)[0][:, 0], 5000, n=4)
+print(f"       bande Aigu  : 100 Hz -> THD {a:.1f} dB, 5 kHz -> THD {b:.1f} dB")
+check(b > a + 15, "bande Aigu : l'aigu sature, le grave beaucoup moins")
+hS, _ = harmonics(render("sine1k", sine1k, sat=0.8, satband=2, sattype=0, autogain=0)[0][:, 0], 1000)
+hA, _ = harmonics(render("sine1k", sine1k, sat=0.8, satband=2, sattype=1, autogain=0)[0][:, 0], 1000)
+print(f"       médium, douce : H2 {hS[0]:.1f} H3 {hS[1]:.1f} | agressive : H2 {hA[0]:.1f} H3 {hA[1]:.1f} dB")
+check(hA[0] > hS[0] + 10, "agressive : nettement plus d'harmoniques paires que douce")
+
+print("L. Gain automatique : volume tenu (bruit rose, écart de RMS sur les 4 dernières secondes)")
+base = rms(pinkSt[2 * SR:])
+settings = [dict(), dict(triode=1, pentode=1, density=1), dict(sat=1, satband=0), dict(air=1, cal=2),
+            dict(input=12, triode=0.8, pentode=0.6, sat=0.7, satband=1, sattype=1)]
+for st in settings:
+    y, _ = render("pink", pinkSt, **st)
+    d = db(rms(y[2 * SR:])) - db(base)
+    check(abs(d) < 1.0, f"{st or 'tout à zéro'} : {d:+.2f} dB (±1)")
+y, _ = render("pink", pinkSt, triode=1, pentode=1, density=1, sat=1, satband=0, autogain=0)
+print(f"       même réglage extrême sans gain auto : {db(rms(y[2 * SR:])) - db(base):+.2f} dB")
 
 print()
 print("RÉSULTAT :", "TOUT OK" if not fails else f"{len(fails)} échec(s)")

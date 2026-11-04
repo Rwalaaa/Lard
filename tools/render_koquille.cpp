@@ -1,6 +1,6 @@
 // render_koquille.cpp — applique KoquilleEngine à un WAV float32 (mono/stéréo), pour les tests.
 // Usage : render_koquille in.wav out.wav [nom=valeur ...] [block=512]
-//   noms : input pentode triode density mix output
+//   noms : input pentode triode density mix output sat sattype satband cal air autogain
 #include "../dsp/KoquilleEngine.h"
 #include <cstdio>
 #include <cstdlib>
@@ -28,6 +28,12 @@ int main(int argc, char** argv) {
         else if (key == "density") p.density = v;
         else if (key == "mix")     p.mix = v;
         else if (key == "output")  p.outputDb = v;
+        else if (key == "sat")     p.satAmount = v;
+        else if (key == "sattype") p.satType = (int) v;
+        else if (key == "satband") p.satBand = (int) v;
+        else if (key == "cal")     p.calibration = (int) v;
+        else if (key == "air")     p.air = v;
+        else if (key == "autogain") p.autoGain = v != 0.0f;
         else if (key == "block")   block = (int) v;
         else { std::fprintf(stderr, "réglage inconnu : %s\n", key.c_str()); return 2; }
     }
