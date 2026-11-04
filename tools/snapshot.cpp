@@ -25,6 +25,11 @@ int main(int argc, char** argv)
     const float scale = argc > 7 ? (float) std::atof(argv[7]) : 1.0f;
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
+    // LARD_WIDTH=1080 : simule un redimensionnement de la fenêtre par l'utilisateur
+    if (const char* w = std::getenv("LARD_WIDTH")) {
+        const int width = std::atoi(w);
+        editor->setSize(width, juce::roundToInt(width * 420.0 / 720.0));
+    }
     // laisse tourner la boucle de messages : minuteries (vu-mètre, animations)
     juce::MessageManager::getInstance()->runDispatchLoopUntil(400);
 

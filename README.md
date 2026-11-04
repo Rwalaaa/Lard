@@ -11,6 +11,13 @@ Plugin audio (VST3) de densification : compression, saturation et plafond dans d
 
 Latence : 32 échantillons, compensée automatiquement par le DAW.
 
+### Interface
+
+- Le démon se réveille avec **Fatness** : les yeux s'embrasent, la gueule s'ouvre, les braises montent.
+- Sa lueur vacille et flambe en direct avec la compression ; le vu-mètre en haut à droite affiche la réduction de gain.
+- **Double-clic** sur un réglage : retour à sa valeur par défaut.
+- Fenêtre redimensionnable de 75 % à 200 % par le coin bas-droit ; la taille est gardée avec le projet.
+
 ## Installer (Windows)
 
 Copier `Lard.vst3` dans `C:\Program Files\Common Files\VST3\`, puis relancer l'analyse des plugins dans le DAW (Ableton : Préférences → Plug-ins → Réanalyser).

@@ -43,7 +43,7 @@ LardEditor::LardEditor(LardAudioProcessor& p)
     auto setupBar = [this](Slider& s) {
         s.setSliderStyle(Slider::LinearHorizontal);
         s.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
-        s.onValueChange = [this] { repaint(getLocalBounds().removeFromBottom(70)); };
+        s.onValueChange = [this] { repaintDesign({ 0, kHeight - 70, kWidth, 70 }); };
         addAndMakeVisible(s);
     };
     setupBar(gainSlider);
@@ -66,7 +66,15 @@ LardEditor::LardEditor(LardAudioProcessor& p)
     mixSlider.setTitle("Mix");
 
     face.setFatness((float) fatSlider.getValue());
-    setSize(kWidth, kHeight);
+
+    // fenêtre redimensionnable de 75 % à 200 %, proportions fixes ; taille gardée dans le projet
+    setResizable(true, true);
+    setResizeLimits(kWidth * 3 / 4, kHeight * 3 / 4, kWidth * 2, kHeight * 2);
+    if (auto* c = getConstrainer())
+        c->setFixedAspectRatio((double) kWidth / (double) kHeight);
+    const int savedW = (int) proc.apvts.state.getProperty("uiWidth", kWidth);
+    const int w = jlimit(kWidth * 3 / 4, kWidth * 2, savedW);
+    setSize(w, roundToInt((float) w * (float) kHeight / (float) kWidth));
     startTimerHz(25);
 }
 
@@ -78,12 +86,27 @@ LardEditor::~LardEditor()
 
 void LardEditor::resized()
 {
+    // tout est placé en coordonnées de la maquette puis mis à l'échelle :
+    // le dessin reste vectoriel, donc net à toutes les tailles
+    uiScale = (float) getWidth() / (float) kWidth;
+    const auto t = uiTransform();
+
     face.setBounds(0, 0, kWidth, kHeight);
     fatSlider.setBounds(fatBounds);
     colorSlider.setBounds(colorBounds);
     // barres du bas : zone cliquable de 24 px de haut, barre dessinée de 6 px
     gainSlider.setBounds(84, 370, 120, 24);
     mixSlider.setBounds(500, 370, 120, 24);
+    for (Component* c : { (Component*) &face, (Component*) &fatSlider, (Component*) &colorSlider,
+                          (Component*) &gainSlider, (Component*) &mixSlider })
+        c->setTransform(t);
+
+    proc.apvts.state.setProperty("uiWidth", getWidth(), nullptr);
+}
+
+void LardEditor::repaintDesign(Rectangle<int> designArea)
+{
+    repaint(designArea.toFloat().transformedBy(uiTransform()).getSmallestIntegerContainer().expanded(1));
 }
 
 void LardEditor::timerCallback()
@@ -93,7 +116,7 @@ void LardEditor::timerCallback()
     const float next = target > meterDb ? target : meterDb + (target - meterDb) * 0.25f;
     if (std::abs(next - meterDb) > 0.01f) {
         meterDb = next;
-        repaint(meterBounds);
+        repaintDesign(meterBounds);
     }
     // animation du visage : vacillement, braises, embrasement selon la compression
     face.setHeat(meterDb);
@@ -127,7 +150,8 @@ void LardEditor::paint(Graphics& g)
 
 void LardEditor::paintOverChildren(Graphics& g)
 {
-    // textes par-dessus le visage et les potards
+    // textes par-dessus le visage et les potards, dans le repère de la maquette
+    g.addTransform(uiTransform());
     paintHeader(g);
     paintMeter(g);
     paintKnobLabels(g);

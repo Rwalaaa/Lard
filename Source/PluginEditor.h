@@ -38,6 +38,10 @@ private:
     std::unique_ptr<Attachment> fatAtt, colorAtt, gainAtt, mixAtt;
 
     float meterDb = 0.0f;   // réduction affichée (dB, >= 0), lissée
+    float uiScale = 1.0f;   // taille de la fenêtre / taille de référence (720 x 420)
+
+    juce::AffineTransform uiTransform() const { return juce::AffineTransform::scale(uiScale); }
+    void repaintDesign(juce::Rectangle<int> designArea);   // zone en coordonnées de la maquette
 
     static const juce::Rectangle<int> fatBounds, colorBounds, meterBounds;
 
