@@ -71,8 +71,19 @@ juce_add_plugin(Koquille
     VST3_CATEGORIES         Fx Distortion
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
+juce_add_binary_data(KoquilleData
+    NAMESPACE   KoqBinary
+    HEADER_NAME KoqBinaryData.h
+    SOURCES
+        Resources/fonts/BigShouldersDisplay-ExtraBold-latin.ttf
+        Resources/fonts/IBMPlexMono-SemiBold.ttf
+        Resources/fonts/IBMPlexSansCondensed-SemiBold.ttf)
+
 set(KOQUILLE_SOURCES
-    Koquille/KoquilleProcessor.cpp)
+    Koquille/KoquilleProcessor.cpp
+    Koquille/KoquilleEditor.cpp
+    Koquille/KoquilleLookAndFeel.cpp
+    Koquille/NacreBackground.cpp)
 
 target_sources(Koquille PRIVATE ${KOQUILLE_SOURCES})
 target_include_directories(Koquille PRIVATE dsp Koquille)
@@ -82,6 +93,7 @@ target_compile_definitions(Koquille PUBLIC
     JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(Koquille
     PRIVATE
+        KoquilleData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC
@@ -111,6 +123,17 @@ if(LARD_BUILD_SNAPSHOT)
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 JucePlugin_Name="Lard")
     target_link_libraries(lard_snapshot PRIVATE
         LardData
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags)
+
+    juce_add_console_app(koquille_snapshot PRODUCT_NAME "koquille_snapshot")
+    target_sources(koquille_snapshot PRIVATE tools/snapshot_koquille.cpp ${KOQUILLE_SOURCES})
+    target_include_directories(koquille_snapshot PRIVATE dsp Koquille)
+    target_compile_definitions(koquille_snapshot PRIVATE
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 JucePlugin_Name="Koquille")
+    target_link_libraries(koquille_snapshot PRIVATE
+        KoquilleData
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_config_flags)

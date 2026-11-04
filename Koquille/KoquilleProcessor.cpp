@@ -1,4 +1,5 @@
 #include "KoquilleProcessor.h"
+#include "KoquilleEditor.h"
 
 using namespace juce;
 
@@ -128,8 +129,7 @@ void KoquilleAudioProcessor::processBlockBypassed(AudioBuffer<float>& buffer, Mi
 
 AudioProcessorEditor* KoquilleAudioProcessor::createEditor()
 {
-    // interface provisoire : la vraie arrive aux lots K3/K4
-    return new GenericAudioProcessorEditor(*this);
+    return new KoquilleEditor(*this);
 }
 
 void KoquilleAudioProcessor::getStateInformation(MemoryBlock& destData)
