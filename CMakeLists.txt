@@ -28,8 +28,16 @@ juce_add_plugin(Lard
     VST3_CATEGORIES         Fx Distortion Dynamics
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
-target_sources(Lard PRIVATE
-    Source/PluginProcessor.cpp)
+juce_add_binary_data(LardData SOURCES
+    Resources/fonts/DelaGothicOne-Regular-latin.ttf
+    Resources/fonts/ZenKakuGothicNew-Bold-latin.ttf)
+
+set(LARD_SOURCES
+    Source/PluginProcessor.cpp
+    Source/PluginEditor.cpp
+    Source/LardLookAndFeel.cpp)
+
+target_sources(Lard PRIVATE ${LARD_SOURCES})
 
 target_include_directories(Lard PRIVATE dsp Source)
 
@@ -40,6 +48,7 @@ target_compile_definitions(Lard PUBLIC
 
 target_link_libraries(Lard
     PRIVATE
+        LardData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC
@@ -54,4 +63,19 @@ if(LARD_BUILD_TOOLS)
     if(MSVC)
         target_compile_definitions(lard_render PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
     endif()
+endif()
+
+# ---- Capture de l'interface en PNG (vérification visuelle, hors DAW) ----
+option(LARD_BUILD_SNAPSHOT "Construire l'outil de capture de l'interface" OFF)
+if(LARD_BUILD_SNAPSHOT)
+    juce_add_console_app(lard_snapshot PRODUCT_NAME "lard_snapshot")
+    target_sources(lard_snapshot PRIVATE tools/snapshot.cpp ${LARD_SOURCES})
+    target_include_directories(lard_snapshot PRIVATE dsp Source)
+    target_compile_definitions(lard_snapshot PRIVATE
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 JucePlugin_Name="Lard")
+    target_link_libraries(lard_snapshot PRIVATE
+        LardData
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags)
 endif()

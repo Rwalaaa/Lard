@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 
 LardAudioProcessor::LardAudioProcessor()
     : AudioProcessor(BusesProperties()
@@ -118,8 +119,7 @@ void LardAudioProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, 
 
 juce::AudioProcessorEditor* LardAudioProcessor::createEditor()
 {
-    // interface provisoire (lot 4 : interface dédiée)
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new LardEditor(*this);
 }
 
 void LardAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
