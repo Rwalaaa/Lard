@@ -1,9 +1,10 @@
-# Lard & Koquille
+# Lard, Koquille & MAKAR
 
-Deux plugins audio VST3 pour Windows 64 bits :
+Trois plugins audio VST3 pour Windows 64 bits :
 
 - **Lard** : densification agressive (compression + saturation) pour kicks, basses, synthés.
 - **Koquille** : saturateur à lampes pour colorer finement un bus ou un mix.
+- **MAKAR** : saturateur de piste à 5 circuits, de la chaleur discrète à la destruction.
 
 ## Lard
 
@@ -48,13 +49,44 @@ Latence : 33 échantillons, compensée automatiquement par le DAW.
 - Les filaments chauffent avec les réglages et la couleur ; le nautile s'illumine avec Density.
 - **Double-clic** sur un potard : valeur par défaut. Fenêtre redimensionnable de 75 % à 200 %.
 
+## MAKAR
+
+Un saturateur à poser sur une piste : on choisit un circuit, on règle l'attaque, on filtre avant et après. Avec **Auto**, le volume reste le même : le Drive change le grain, pas le niveau.
+
+| Circuit | Caractère |
+|---|---|
+| **01 Bande** | Magnéto : l'aigu sature en premier puis est rabaissé, attaques arrondies, son doux. |
+| **02 Transfo** | Transformateur : le grave sature en premier, gras et appuyé. |
+| **03 Germanium** | Transistor asymétrique : harmoniques paires et impaires, grain rugueux. |
+| **04 Triode** | Lampe polarisée : harmoniques paires, chaud. |
+| **05 Pentode** | Lampe symétrique : harmoniques impaires, plus mordant. |
+
+| Réglage | Rôle |
+|---|---|
+| **Drive** | Attaque du circuit, de -12 à +30 dB. |
+| **Punish** | +20 dB d'attaque en plus, pour écraser. |
+| **Low Cut** | Coupe-bas avant la saturation (12 dB/oct), de 20 Hz (coupé) à 1 kHz. |
+| **Thump** | Bosse de +4 dB dans le grave, à la fréquence du coupe-bas (50 Hz au minimum). |
+| **Tone** | Bascule sombre ↔ brillant (±5 dB autour de 800 Hz), avant la saturation. |
+| **High Cut** | Coupe-haut après la saturation (6 dB/oct), de 1 kHz à 20 kHz (coupé). |
+| **Steep** | Coupe-haut à 30 dB/oct au lieu de 6. |
+| **Mix** | Dosage sec / traité. |
+| **Output** | Volume de sortie, de -24 à +12 dB. |
+| **Auto** | Compense le volume selon le Drive et le circuit. |
+
+Latence : 33 échantillons, compensée automatiquement par le DAW.
+
+- Le vu-mètre **ATTITUDE** montre en direct la force avec laquelle le signal attaque le circuit.
+- La courbe **FILTRES** affiche la réponse réelle de Low Cut, Thump, Tone, High Cut et Steep.
+- **Double-clic** sur un réglage : valeur par défaut. Fenêtre redimensionnable de 75 % à 200 %.
+
 ## Installer (Windows)
 
 1. Décompresser le zip.
-2. Copier les dossiers `Lard.vst3` et `Koquille.vst3` dans `C:\Program Files\Common Files\VST3\`.
+2. Copier les dossiers `Lard.vst3`, `Koquille.vst3` et `MAKAR.vst3` dans `C:\Program Files\Common Files\VST3\`.
 3. Dans Ableton : Préférences → Plug-ins → activer « Utiliser les dossiers système VST3 », puis Réanalyser.
 
-Les deux plugins apparaissent dans Plug-ins → Rwalaaa.
+Les trois plugins apparaissent dans Plug-ins → Rwalaaa.
 
 ## Compiler
 
@@ -65,13 +97,14 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-Les plugins sortent dans `build/Lard_artefacts/Release/VST3/` et `build/Koquille_artefacts/Release/VST3/`.
+Les plugins sortent dans `build/Lard_artefacts/Release/VST3/`, `build/Koquille_artefacts/Release/VST3/` et `build/MAKAR_artefacts/Release/VST3/`.
 
 ## Tests des moteurs audio
 
 ```
 python3 tools/test_engine.py     # Lard
 python3 tools/test_koquille.py   # Koquille
+python3 tools/test_makar.py      # MAKAR
 ```
 
-Les outils `lard_render` et `render_koquille` appliquent chaque moteur à un fichier WAV float32, hors DAW. Les scripts vérifient la transparence, les niveaux, les harmoniques, le repliement, la stabilité et la charge CPU.
+Les outils `lard_render`, `render_koquille` et `render_makar` appliquent chaque moteur à un fichier WAV float32, hors DAW. Les scripts vérifient la transparence, les niveaux, les harmoniques, le repliement, la stabilité et la charge CPU.

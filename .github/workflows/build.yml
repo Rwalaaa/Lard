@@ -78,17 +78,20 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: Lard & Koquille v${{ steps.version.outputs.version }}
+          name: Lard, Koquille & MAKAR v${{ steps.version.outputs.version }}
           target_commitish: ${{ github.sha }}
           files: Rwalaaa-Plugins-Windows-VST3.zip
           body: |
-            Deux plugins VST3 pour Windows 64 bits :
+            Trois plugins VST3 pour Windows 64 bits :
             - **Lard** : densification agressive (compression + saturation) pour kicks, basses, synthés.
             - **Koquille** : saturateur à lampes (pentode, triode, saturation parallèle par bande) pour bus et mix.
+            - **MAKAR** (nouveau) : saturateur de piste à 5 circuits (Bande, Transfo, Germanium, Triode, Pentode), Punish, filtres avant/après.
+
+            Correctif : Lard et Koquille s'ouvraient à 75 % de leur taille à la première ouverture ; ils s'ouvrent maintenant à 100 %.
 
             **Installation**
             1. Télécharger `Rwalaaa-Plugins-Windows-VST3.zip` ci-dessous et le décompresser.
-            2. Copier les dossiers `Lard.vst3` et `Koquille.vst3` dans `C:\Program Files\Common Files\VST3\`.
+            2. Copier les dossiers `Lard.vst3`, `Koquille.vst3` et `MAKAR.vst3` dans `C:\Program Files\Common Files\VST3\`.
             3. Dans Ableton : Préférences → Plug-ins → activer « Utiliser les dossiers système VST3 » puis Réanalyser.
 
-            Les deux plugins apparaissent dans Plug-ins → Rwalaaa. Le mode d'emploi est dans `LISEZ-MOI.md`, dans le zip.
+            Les trois plugins apparaissent dans Plug-ins → Rwalaaa. Le mode d'emploi est dans `LISEZ-MOI.md`, dans le zip.
