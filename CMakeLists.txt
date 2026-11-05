@@ -115,8 +115,18 @@ juce_add_plugin(MAKAR
     VST3_CATEGORIES         Fx Distortion
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
+juce_add_binary_data(MakarData
+    NAMESPACE   MakarBinary
+    HEADER_NAME MakarBinaryData.h
+    SOURCES
+        Resources/fonts/MakarDisplay-Black.ttf
+        Resources/fonts/JetBrainsMono-Bold-latin.ttf)
+
 set(MAKAR_SOURCES
-    Makar/MakarProcessor.cpp)
+    Makar/MakarProcessor.cpp
+    Makar/MakarEditor.cpp
+    Makar/MakarLookAndFeel.cpp
+    Makar/HudBackground.cpp)
 
 target_sources(MAKAR PRIVATE ${MAKAR_SOURCES})
 target_include_directories(MAKAR PRIVATE dsp Makar)
@@ -126,6 +136,7 @@ target_compile_definitions(MAKAR PUBLIC
     JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(MAKAR
     PRIVATE
+        MakarData
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC
@@ -169,6 +180,17 @@ if(LARD_BUILD_SNAPSHOT)
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 JucePlugin_Name="Koquille")
     target_link_libraries(koquille_snapshot PRIVATE
         KoquilleData
+        juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_recommended_config_flags)
+
+    juce_add_console_app(makar_snapshot PRODUCT_NAME "makar_snapshot")
+    target_sources(makar_snapshot PRIVATE tools/snapshot_makar.cpp ${MAKAR_SOURCES})
+    target_include_directories(makar_snapshot PRIVATE dsp Makar)
+    target_compile_definitions(makar_snapshot PRIVATE
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 JucePlugin_Name="MAKAR")
+    target_link_libraries(makar_snapshot PRIVATE
+        MakarData
         juce::juce_audio_utils
         juce::juce_dsp
         juce::juce_recommended_config_flags)

@@ -68,11 +68,12 @@ LardEditor::LardEditor(LardAudioProcessor& p)
     face.setFatness((float) fatSlider.getValue());
 
     // fenêtre redimensionnable de 75 % à 200 %, proportions fixes ; taille gardée dans le projet
+    // largeur lue avant setResizeLimits, qui redimensionne déjà la fenêtre (et l'enregistrerait)
+    const int savedW = (int) proc.apvts.state.getProperty("uiWidth", kWidth);
     setResizable(true, true);
     setResizeLimits(kWidth * 3 / 4, kHeight * 3 / 4, kWidth * 2, kHeight * 2);
     if (auto* c = getConstrainer())
         c->setFixedAspectRatio((double) kWidth / (double) kHeight);
-    const int savedW = (int) proc.apvts.state.getProperty("uiWidth", kWidth);
     const int w = jlimit(kWidth * 3 / 4, kWidth * 2, savedW);
     setSize(w, roundToInt((float) w * (float) kHeight / (float) kWidth));
     startTimerHz(25);

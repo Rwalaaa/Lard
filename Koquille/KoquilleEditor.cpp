@@ -53,12 +53,13 @@ KoquilleEditor::KoquilleEditor(KoquilleAudioProcessor& p)
     updateBackground();
 
     // fenêtre redimensionnable de 75 % à 200 %, proportions fixes ; taille gardée dans le projet
+    // largeur lue avant setResizeLimits, qui redimensionne déjà la fenêtre (et l'enregistrerait)
+    const int savedW = (int) proc.apvts.state.getProperty("uiWidth", KoqLayout::W);
     setResizable(true, true);
     setResizeLimits(KoqLayout::W * 3 / 4, KoqLayout::H * 3 / 4, KoqLayout::W * 2, KoqLayout::H * 2);
     if (auto* c = getConstrainer())
         c->setFixedAspectRatio((double) KoqLayout::W / (double) KoqLayout::H);
-    const int w = jlimit(KoqLayout::W * 3 / 4, KoqLayout::W * 2,
-                         (int) proc.apvts.state.getProperty("uiWidth", KoqLayout::W));
+    const int w = jlimit(KoqLayout::W * 3 / 4, KoqLayout::W * 2, savedW);
     setSize(w, roundToInt((float) w * (float) KoqLayout::H / (float) KoqLayout::W));
     startTimerHz(25);
 }

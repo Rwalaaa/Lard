@@ -1,4 +1,5 @@
 #include "MakarProcessor.h"
+#include "MakarEditor.h"
 
 using namespace juce;
 
@@ -140,8 +141,7 @@ void MakarAudioProcessor::processBlockBypassed(AudioBuffer<float>& buffer, MidiB
 
 AudioProcessorEditor* MakarAudioProcessor::createEditor()
 {
-    // interface provisoire : la vraie arrive après la maquette (M3/M4)
-    return new GenericAudioProcessorEditor(*this);
+    return new MakarEditor(*this);
 }
 
 void MakarAudioProcessor::getStateInformation(MemoryBlock& destData)
