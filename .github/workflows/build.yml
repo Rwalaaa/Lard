@@ -25,24 +25,27 @@ jobs:
       - name: Compiler
         run: cmake --build build --config Release --parallel
 
-      - name: Tests des moteurs audio (Lard, Koquille)
+      - name: Tests des moteurs audio (Lard, Koquille, MAKAR)
         env:
           LARD_RENDER: build/Release/lard_render.exe
           LARD_CPU_LIMIT: '15'   # machines partagées : mesure CPU indicative
           KOQ_RENDER: build/Release/render_koquille.exe
           KOQ_CPU_LIMIT: '15'
+          MAKAR_RENDER: build/Release/render_makar.exe
+          MAKAR_CPU_LIMIT: '15'
           PYTHONIOENCODING: utf-8
         run: |
           python -m pip install --quiet numpy scipy
           python tools/test_engine.py
           python tools/test_koquille.py
+          python tools/test_makar.py
 
-      - name: Validation pluginval (sévérité 10, les deux plugins)
+      - name: Validation pluginval (sévérité 10, les trois plugins)
         shell: pwsh
         run: |
           Invoke-WebRequest https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
           Expand-Archive pluginval.zip -DestinationPath pluginval
-          foreach ($p in @("Lard", "Koquille")) {
+          foreach ($p in @("Lard", "Koquille", "MAKAR")) {
             ./pluginval/pluginval.exe --strictness-level 10 --validate-in-process --output-dir pluginval-logs "build/$($p)_artefacts/Release/VST3/$p.vst3"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
@@ -53,12 +56,13 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item -Recurse "build/Lard_artefacts/Release/VST3/Lard.vst3" dist/
           Copy-Item -Recurse "build/Koquille_artefacts/Release/VST3/Koquille.vst3" dist/
+          Copy-Item -Recurse "build/MAKAR_artefacts/Release/VST3/MAKAR.vst3" dist/
           Copy-Item README.md dist/LISEZ-MOI.md
-          Compress-Archive -Path dist/* -DestinationPath Lard-Koquille-Windows-VST3.zip
+          Compress-Archive -Path dist/* -DestinationPath Rwalaaa-Plugins-Windows-VST3.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Lard-Koquille-Windows-VST3
+          name: Rwalaaa-Plugins-Windows-VST3
           path: dist/
 
       - name: Lire la version
@@ -76,14 +80,14 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: Lard & Koquille v${{ steps.version.outputs.version }}
           target_commitish: ${{ github.sha }}
-          files: Lard-Koquille-Windows-VST3.zip
+          files: Rwalaaa-Plugins-Windows-VST3.zip
           body: |
             Deux plugins VST3 pour Windows 64 bits :
             - **Lard** : densification agressive (compression + saturation) pour kicks, basses, synthés.
             - **Koquille** : saturateur à lampes (pentode, triode, saturation parallèle par bande) pour bus et mix.
 
             **Installation**
-            1. Télécharger `Lard-Koquille-Windows-VST3.zip` ci-dessous et le décompresser.
+            1. Télécharger `Rwalaaa-Plugins-Windows-VST3.zip` ci-dessous et le décompresser.
             2. Copier les dossiers `Lard.vst3` et `Koquille.vst3` dans `C:\Program Files\Common Files\VST3\`.
             3. Dans Ableton : Préférences → Plug-ins → activer « Utiliser les dossiers système VST3 » puis Réanalyser.
 

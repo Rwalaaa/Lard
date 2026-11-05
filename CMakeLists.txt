@@ -101,16 +101,51 @@ target_link_libraries(Koquille
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
 
+# ---- Plugin MAKAR (saturateur de piste à 5 caractères) ----
+juce_add_plugin(MAKAR
+    COMPANY_NAME            "Rwalaaa"
+    PLUGIN_MANUFACTURER_CODE Rwla
+    PLUGIN_CODE             Makr
+    FORMATS                 VST3
+    PRODUCT_NAME            "MAKAR"
+    IS_SYNTH                FALSE
+    NEEDS_MIDI_INPUT        FALSE
+    NEEDS_MIDI_OUTPUT       FALSE
+    IS_MIDI_EFFECT          FALSE
+    VST3_CATEGORIES         Fx Distortion
+    COPY_PLUGIN_AFTER_BUILD FALSE)
+
+set(MAKAR_SOURCES
+    Makar/MakarProcessor.cpp)
+
+target_sources(MAKAR PRIVATE ${MAKAR_SOURCES})
+target_include_directories(MAKAR PRIVATE dsp Makar)
+target_compile_definitions(MAKAR PUBLIC
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0)
+target_link_libraries(MAKAR
+    PRIVATE
+        juce::juce_audio_utils
+        juce::juce_dsp
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags)
+
 # ---- Outils de rendu hors-ligne (C++ pur, sans JUCE) ----
 if(LARD_BUILD_TOOLS)
-    add_executable(lard_render tools/render.cpp)
-    target_include_directories(lard_render PRIVATE dsp)
-    add_executable(render_koquille tools/render_koquille.cpp)
-    target_include_directories(render_koquille PRIVATE dsp)
-    if(MSVC)
-        target_compile_definitions(lard_render PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
-        target_compile_definitions(render_koquille PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
-    endif()
+    foreach(tool IN ITEMS lard_render render_koquille render_makar)
+        if(tool STREQUAL "lard_render")
+            add_executable(${tool} tools/render.cpp)
+        else()
+            add_executable(${tool} tools/${tool}.cpp)
+        endif()
+        target_include_directories(${tool} PRIVATE dsp)
+        if(MSVC)
+            target_compile_definitions(${tool} PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
+        endif()
+    endforeach()
 endif()
 
 # ---- Capture de l'interface en PNG (vérification visuelle, hors DAW) ----
