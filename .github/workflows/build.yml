@@ -40,6 +40,13 @@ jobs:
           python tools/test_koquille.py
           python tools/test_makar.py
 
+      - name: Aucune dépendance au runtime Visual C++
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m pip install --quiet pefile
+          python tools/check_imports.py build/Lard_artefacts/Release/VST3/Lard.vst3/Contents/x86_64-win/Lard.vst3 build/Koquille_artefacts/Release/VST3/Koquille.vst3/Contents/x86_64-win/Koquille.vst3 build/MAKAR_artefacts/Release/VST3/MAKAR.vst3/Contents/x86_64-win/MAKAR.vst3
+
       - name: Validation pluginval (sévérité 10, les trois plugins)
         shell: pwsh
         run: |

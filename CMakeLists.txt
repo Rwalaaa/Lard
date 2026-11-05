@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(LARD_BUILD_TOOLS "Construire l'outil de rendu hors-ligne (tests)" ON)
 
+# Windows : runtime Visual C++ intégré aux plugins (/MT). Sinon ils exigent le
+# « Redistribuable Visual C++ » récent sur le PC, et Ableton les ignore ou plante sans lui.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 # ---- JUCE, récupéré automatiquement à la configuration ----
 include(FetchContent)
 FetchContent_Declare(JUCE
