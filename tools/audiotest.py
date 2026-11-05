@@ -47,7 +47,10 @@ class Renderer:
         os.makedirs(outdir, exist_ok=True)
 
     def __call__(self, name, x, **params):
-        src = os.path.join(self.outdir, f"{name}_in.wav")
+        # le fichier d'entrée est identifié par son contenu : même nom, signal différent -> autre fichier
+        import hashlib
+        h = hashlib.sha1(np.ascontiguousarray(x, dtype=np.float32).tobytes()).hexdigest()[:10]
+        src = os.path.join(self.outdir, f"{name}_{h}_in.wav")
         if not os.path.exists(src):
             write_wav(src, x)
         self.n += 1

@@ -33,6 +33,35 @@ struct Biquad {
     }
     void setIdentity() { b0 = 1; b1 = b2 = a1 = a2 = 0; }
 
+    // passe-haut / passe-bas du 2e ordre (RBJ), facteur de qualité Q
+    void setHighPass(double fs, double f0, double Q) { setPass(fs, f0, Q, true); }
+    void setLowPass(double fs, double f0, double Q)  { setPass(fs, f0, Q, false); }
+
+    // cloche (RBJ), gain en dB
+    void setPeak(double fs, double f0, double gainDb, double Q) {
+        const double A = std::pow(10.0, gainDb / 40.0);
+        const double w0 = 2.0 * kPi * std::min(f0, 0.49 * fs) / fs;
+        const double c = std::cos(w0), alpha = std::sin(w0) / (2.0 * Q);
+        const double a0 = 1.0 + alpha / A;
+        b0 = (float) ((1.0 + alpha * A) / a0);
+        b1 = (float) (-2.0 * c / a0);
+        b2 = (float) ((1.0 - alpha * A) / a0);
+        a1 = (float) (-2.0 * c / a0);
+        a2 = (float) ((1.0 - alpha / A) / a0);
+    }
+
+    void setPass(double fs, double f0, double Q, bool high) {
+        const double w0 = 2.0 * kPi * std::min(f0, 0.49 * fs) / fs;
+        const double c = std::cos(w0), alpha = std::sin(w0) / (2.0 * Q);
+        const double a0 = 1.0 + alpha;
+        const double k = high ? (1.0 + c) / 2.0 : (1.0 - c) / 2.0;
+        b0 = (float) (k / a0);
+        b1 = (float) ((high ? -2.0 * k : 2.0 * k) / a0);
+        b2 = (float) (k / a0);
+        a1 = (float) (-2.0 * c / a0);
+        a2 = (float) ((1.0 - alpha) / a0);
+    }
+
     // étagère haute (RBJ), gain en dB, pente S
     void setHighShelf(double fs, double f0, double gainDb, double S) {
         const double A = std::pow(10.0, gainDb / 40.0);

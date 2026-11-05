@@ -1,6 +1,6 @@
 // render_makar.cpp — applique MakarEngine à un WAV float32 (mono/stéréo), pour les tests.
 // Usage : render_makar in.wav out.wav [nom=valeur ...]
-//   noms : drive punish style mix output block
+//   noms : drive punish style mix output lowcut thump tone highcut steep auto block style2
 #include "../dsp/MakarEngine.h"
 #include <cstdio>
 #include <cstdlib>
@@ -30,6 +30,12 @@ int main(int argc, char** argv) {
         else if (key == "output") p.outputDb = v;
         else if (key == "block")  block = (int) v;
         else if (key == "style2") style2 = (int) v;   // style appliqué à partir de la moitié du fichier
+        else if (key == "lowcut")  p.lowCutHz = v;
+        else if (key == "thump")   p.thump = v != 0.0f;
+        else if (key == "tone")    p.tone = v;
+        else if (key == "highcut") p.highCutHz = v;
+        else if (key == "steep")   p.steep = v != 0.0f;
+        else if (key == "auto")    p.autoGain = v != 0.0f;
         else { std::fprintf(stderr, "réglage inconnu : %s\n", key.c_str()); return 2; }
     }
 
@@ -60,6 +66,7 @@ int main(int argc, char** argv) {
     }
     if (!writeWav(argv[2], w)) return 1;
     const double secs = std::chrono::duration<double>(t1 - t0).count();
-    std::printf("latency=%d cpu_pct=%.3f\n", eng.latencySamples(), 100.0 * secs / ((double) frames / w.sr));
+    std::printf("latency=%d attitude_db=%.2f cpu_pct=%.3f\n", eng.latencySamples(), eng.attitudeDb(),
+                100.0 * secs / ((double) frames / w.sr));
     return 0;
 }
