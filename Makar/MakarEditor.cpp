@@ -8,6 +8,8 @@ MakarEditor::MakarEditor(MakarAudioProcessor& p)
 {
     setLookAndFeel(&laf);
     addAndMakeVisible(background);   // en premier : derrière tout
+    addAndMakeVisible(curve);
+    addAndMakeVisible(meter);
 
     struct K { Slider* s; const char* id; const char* kind; bool centre; double def; const char* title; Rectangle<int> area; };
     const K sliders[] = {
@@ -32,7 +34,7 @@ MakarEditor::MakarEditor(MakarAudioProcessor& p)
         s.setTitle(k.title);
         s.setBufferedToImage(true);   // redessiné seulement quand sa valeur change
         const auto area = k.area;     // libellés de valeur peints par l'éditeur
-        s.onValueChange = [this, area] { repaintDesign(area); };
+        s.onValueChange = [this, area] { repaintDesign(area); syncStates(); };
         addAndMakeVisible(s);
         sliderAtts.push_back(std::make_unique<SA>(proc.apvts, k.id, s));
         s.setDoubleClickReturnValue(true, k.def);   // après l'attache : valeur par défaut au double-clic
@@ -99,6 +101,7 @@ MakarEditor::~MakarEditor()
 
 void MakarEditor::timerCallback()
 {
+    meter.setDb(proc.attitudeDb.load());
     syncStates();
 }
 
@@ -110,6 +113,8 @@ void MakarEditor::syncStates()
         drive.repaint();
     }
     background.setHalos(circuitIndex, hot);
+    curve.setSettings({ (float) lowCut.getValue(), (float) tone.getValue(), (float) highCut.getValue(),
+                        thump.getToggleState(), steep.getToggleState() });
 }
 
 void MakarEditor::repaintDesign(Rectangle<int> a)
@@ -121,6 +126,8 @@ void MakarEditor::resized()
 {
     using namespace MkLayout;
     background.setBounds(0, 0, W, H);
+    curve.setBounds(MkLayout::curve);
+    meter.setBounds(MkLayout::meter.expanded(AttitudeMeter::margin));
     drive.setBounds(MkLayout::drive);
     lowCut.setBounds(knob(0));
     tone.setBounds(knob(1));
@@ -143,7 +150,7 @@ void MakarEditor::resized()
 
 std::vector<Component*> MakarEditor::designChildren()
 {
-    std::vector<Component*> v { &background, &drive, &lowCut, &tone, &highCut, &mix, &output,
+    std::vector<Component*> v { &background, &curve, &meter, &drive, &lowCut, &tone, &highCut, &mix, &output,
                                 &punish, &thump, &steep, &autoGain };
     for (auto& b : circuits) v.push_back(b.get());
     return v;

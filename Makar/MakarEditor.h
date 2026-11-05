@@ -3,6 +3,7 @@
 #include "MakarProcessor.h"
 #include "MakarLookAndFeel.h"
 #include "HudBackground.h"
+#include "HudWidgets.h"
 
 class MakarEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
@@ -15,13 +16,15 @@ public:
 
 private:
     void timerCallback() override;
-    void syncStates();                                  // halos, couronne Punish
+    void syncStates();                                  // halos, couronne Punish, courbe des filtres
     void repaintDesign(juce::Rectangle<int> designArea);
     std::vector<juce::Component*> designChildren();     // composants placés dans le repère de la maquette
 
     MakarAudioProcessor& proc;
     MakarLookAndFeel laf;
     HudBackground background { laf };
+    FilterCurve curve;
+    AttitudeMeter meter { laf };
     float uiScale = 1.0f;   // taille de la fenêtre / taille de référence (800 x 470)
 
     juce::Slider drive, lowCut, tone, highCut, mix, output;

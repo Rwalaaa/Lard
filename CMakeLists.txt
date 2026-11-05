@@ -126,7 +126,8 @@ set(MAKAR_SOURCES
     Makar/MakarProcessor.cpp
     Makar/MakarEditor.cpp
     Makar/MakarLookAndFeel.cpp
-    Makar/HudBackground.cpp)
+    Makar/HudBackground.cpp
+    Makar/HudWidgets.cpp)
 
 target_sources(MAKAR PRIVATE ${MAKAR_SOURCES})
 target_include_directories(MAKAR PRIVATE dsp Makar)

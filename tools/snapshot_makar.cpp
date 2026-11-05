@@ -4,6 +4,7 @@
 //        mix, output, autoGain) ; valeurs dans leurs unités (style : 0..4).
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "MakarProcessor.h"
+#include "HudWidgets.h"
 
 int main(int argc, char** argv)
 {
@@ -23,6 +24,17 @@ int main(int argc, char** argv)
         auto* p = proc.apvts.getParameter(key);
         if (p == nullptr) { std::fprintf(stderr, "paramètre inconnu : %s\n", argv[i]); return 2; }
         p->setValueNotifyingHost(p->convertTo0to1(v));
+    }
+
+    // MAKAR_CURVE=1 : imprime la courbe des filtres affichée (dB) pour comparaison avec le moteur
+    if (std::getenv("MAKAR_CURVE") != nullptr) {
+        auto val = [&](const char* id) { return proc.apvts.getRawParameterValue(id)->load(); };
+        FilterCurve curve;
+        curve.setSettings({ val(MakarIDs::lowCut), val(MakarIDs::tone), val(MakarIDs::highCut),
+                            val(MakarIDs::thump) > 0.5f, val(MakarIDs::steep) > 0.5f });
+        for (float f : { 30.f, 50.f, 80.f, 120.f, 200.f, 400.f, 800.f, 1500.f, 3000.f, 5000.f, 8000.f, 12000.f })
+            std::printf("%g %.3f\n", (double) f, (double) curve.magnitudeDb(f));
+        return 0;
     }
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
