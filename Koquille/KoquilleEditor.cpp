@@ -51,7 +51,15 @@ KoquilleEditor::KoquilleEditor(KoquilleAudioProcessor& p)
     autoGainAtt = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, KoqIDs::autoGain, autoGain);
 
     updateBackground();
-    setSize(KoqLayout::W, KoqLayout::H);
+
+    // fenêtre redimensionnable de 75 % à 200 %, proportions fixes ; taille gardée dans le projet
+    setResizable(true, true);
+    setResizeLimits(KoqLayout::W * 3 / 4, KoqLayout::H * 3 / 4, KoqLayout::W * 2, KoqLayout::H * 2);
+    if (auto* c = getConstrainer())
+        c->setFixedAspectRatio((double) KoqLayout::W / (double) KoqLayout::H);
+    const int w = jlimit(KoqLayout::W * 3 / 4, KoqLayout::W * 2,
+                         (int) proc.apvts.state.getProperty("uiWidth", KoqLayout::W));
+    setSize(w, roundToInt((float) w * (float) KoqLayout::H / (float) KoqLayout::W));
     startTimerHz(25);
 }
 
@@ -119,6 +127,22 @@ void KoquilleEditor::resized()
     for (int i = 0; i < 4; ++i) bands.buttons[(size_t) i]->setBounds(KoqLayout::bands[i]);
     for (int i = 0; i < 3; ++i) cals.buttons[(size_t) i]->setBounds(KoqLayout::cals[i]);
     autoGain.setBounds(KoqLayout::autoGain);
+
+    // tout est placé dans le repère de la maquette puis mis à l'échelle (dessin vectoriel net)
+    uiScale = (float) getWidth() / (float) W;
+    const auto t = AffineTransform::scale(uiScale);
+    for (auto* c : designChildren())
+        c->setTransform(t);
+    proc.apvts.state.setProperty("uiWidth", getWidth(), nullptr);
+}
+
+std::vector<Component*> KoquilleEditor::designChildren()
+{
+    std::vector<Component*> v { &background, &input, &output, &pentode, &triode, &density, &sat, &air, &mix, &autoGain };
+    for (auto* c : { &types, &bands, &cals })
+        for (auto& b : c->buttons)
+            v.push_back(b.get());
+    return v;
 }
 
 String KoquilleEditor::pct(const Slider& s) const { return String(roundToInt(s.getValue() * 100.0)) + " %"; }
@@ -136,6 +160,7 @@ void KoquilleEditor::paint(Graphics& g)
 void KoquilleEditor::paintOverChildren(Graphics& g)
 {
     using namespace KoqLayout;
+    g.addTransform(AffineTransform::scale(uiScale));   // textes dans le repère de la maquette
     auto text = [&](const String& s, Rectangle<int> r, const Font& f, Colour c, Justification j = Justification::centred) {
         g.setFont(f);
         g.setColour(c);

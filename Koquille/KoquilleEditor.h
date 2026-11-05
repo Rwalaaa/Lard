@@ -22,6 +22,8 @@ private:
     void timerCallback() override;
     void setupChoice(Choice&, const char* paramId, const juce::StringArray& labels, int radioGroup);
     float needle = 0.0f;   // aiguille lissée (0..1)
+    float uiScale = 1.0f;  // taille de la fenêtre / taille de référence (760 x 460)
+    std::vector<juce::Component*> designChildren();   // composants placés dans le repère de la maquette
     void updateBackground();
     juce::String pct(const juce::Slider&) const;
     juce::String dbText(const juce::Slider&) const;
