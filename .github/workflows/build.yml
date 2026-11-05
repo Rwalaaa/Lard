@@ -85,9 +85,11 @@ jobs:
             Trois plugins VST3 pour Windows 64 bits :
             - **Lard** : densification agressive (compression + saturation) pour kicks, basses, synthés.
             - **Koquille** : saturateur à lampes (pentode, triode, saturation parallèle par bande) pour bus et mix.
-            - **MAKAR** (nouveau) : saturateur de piste à 5 circuits (Bande, Transfo, Germanium, Triode, Pentode), Punish, filtres avant/après.
+            - **MAKAR** : saturateur de piste à 5 circuits (Bande, Transfo, Germanium, Triode, Pentode), Punish, filtres avant/après.
 
-            Correctif : Lard et Koquille s'ouvraient à 75 % de leur taille à la première ouverture ; ils s'ouvrent maintenant à 100 %.
+            **Correctifs de cette version (les trois plugins)**
+            - Un échantillon invalide (NaN ou infini) envoyé par un autre plugin ne bloque plus le son jusqu'au rechargement.
+            - Les automations sont lissées à la même vitesse quelle que soit la taille des blocs envoyés par le DAW (plus de craquements possibles avec de petits buffers).
 
             **Installation**
             1. Télécharger `Rwalaaa-Plugins-Windows-VST3.zip` ci-dessous et le décompresser.
