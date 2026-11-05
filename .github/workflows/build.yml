@@ -94,7 +94,8 @@ jobs:
             - **Koquille** : saturateur à lampes (pentode, triode, saturation parallèle par bande) pour bus et mix.
             - **MAKAR** : saturateur de piste à 5 circuits (Bande, Transfo, Germanium, Triode, Pentode), Punish, filtres avant/après.
 
-            **Correctifs de cette version (les trois plugins)**
+            **Correctifs (les trois plugins)**
+            - Plus rien à installer à part les plugins : le runtime Visual C++ est intégré. Avant, sans le « Redistribuable Visual C++ » récent, Ableton ignorait les plugins ou plantait.
             - Un échantillon invalide (NaN ou infini) envoyé par un autre plugin ne bloque plus le son jusqu'au rechargement.
             - Les automations sont lissées à la même vitesse quelle que soit la taille des blocs envoyés par le DAW (plus de craquements possibles avec de petits buffers).
 
