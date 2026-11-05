@@ -119,11 +119,13 @@ public:
 
     void process(float* const* ch, int numChannels, int numSamples) {
         numChannels = std::min(numChannels, kMaxChannels);
+        for (int c = 0; c < numChannels; ++c)
+            lard::sanitizeInput(ch[c], numSamples);
         int done = 0;
         while (done < numSamples) {
             const int n = std::min(kChunk, numSamples - done);
             const float prevIn = inGain, prevOut = outGain, prevMix = cur.mix;
-            const float a = smoothCoefChunk;
+            const float a = n == kChunk ? smoothCoefChunk : std::exp(-(float) n / (0.020f * sr));
             cur.inputDb  = target.inputDb  + a * (cur.inputDb  - target.inputDb);
             cur.pentode  = target.pentode  + a * (cur.pentode  - target.pentode);
             cur.triode   = target.triode   + a * (cur.triode   - target.triode);

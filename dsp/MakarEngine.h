@@ -71,6 +71,7 @@ public:
         envRel = std::exp(-1.0f / (0.300f * sr));
         reset();
         cur = target;
+        punishAmt = target.punish ? 1.0f : 0.0f;   // pas de rampe au chargement
         computeDerived();
     }
 
@@ -103,11 +104,13 @@ public:
 
     void process(float* const* ch, int numChannels, int numSamples) {
         numChannels = std::min(numChannels, kMaxChannels);
+        for (int c = 0; c < numChannels; ++c)
+            lard::sanitizeInput(ch[c], numSamples);
         int done = 0;
         while (done < numSamples) {
             const int n = std::min(kChunk, numSamples - done);
             const float prevOut = outGain, prevMix = cur.mix;
-            const float a = smoothCoefChunk;
+            const float a = n == kChunk ? smoothCoefChunk : std::exp(-(float) n / (0.020f * sr));
             cur.drive    = target.drive    + a * (cur.drive    - target.drive);
             cur.mix      = target.mix      + a * (cur.mix      - target.mix);
             cur.outputDb = target.outputDb + a * (cur.outputDb - target.outputDb);

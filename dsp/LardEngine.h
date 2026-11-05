@@ -78,12 +78,14 @@ public:
     // Traitement en place. numChannels = 1 ou 2.
     void process(float* const* ch, int numChannels, int numSamples) {
         numChannels = std::min(numChannels, kMaxChannels);
+        for (int c = 0; c < numChannels; ++c)
+            lard::sanitizeInput(ch[c], numSamples);
         int done = 0;
         while (done < numSamples) {
             const int n = std::min(kChunk, numSamples - done);
             // lissage des paramètres par blocs de 32 échantillons
             const float prevGain = outGain, prevMix = cur.mix;
-            const float a = smoothCoefChunk;
+            const float a = n == kChunk ? smoothCoefChunk : std::exp(-(float) n / (0.020f * sr));
             cur.fatness = target.fatness + a * (cur.fatness - target.fatness);
             cur.color   = target.color   + a * (cur.color   - target.color);
             cur.gainDb  = target.gainDb  + a * (cur.gainDb  - target.gainDb);

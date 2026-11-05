@@ -12,6 +12,15 @@ constexpr double kPi = 3.14159265358979323846;
 static inline float dbToGain(float db) { return std::pow(10.0f, db / 20.0f); }
 static inline float gainToDb(float g)  { return 20.0f * std::log10(std::max(g, 1.0e-9f)); }
 
+// Entrée assainie : un seul NaN ou infini venu d'un autre plugin bloquerait définitivement les
+// filtres (états non finis). Remplacé par 0 ; valeurs finies bornées à +60 dBFS.
+static inline void sanitizeInput(float* x, int n) {
+    for (int i = 0; i < n; ++i) {
+        const float v = x[i];
+        x[i] = std::isfinite(v) ? std::clamp(v, -1000.0f, 1000.0f) : 0.0f;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Suréchantillonneur x4, FIR à phase linéaire (sinc fenêtré Kaiser).
 // Latence : (N-1)/2 échantillons x4 à la montée + idem à la descente
